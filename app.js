@@ -175,8 +175,8 @@ class StudyPlanner {
     const dayData = this.getDayData(date);
 
     // Visual classes based on defaults
-    const defaultsComplete = dayData.defaults.study && dayData.defaults.waste && dayData.defaults.sleep;
-    const anyDefaults = dayData.defaults.study || dayData.defaults.waste || dayData.defaults.sleep;
+    const defaultsComplete = dayData.defaults.studyGoal && dayData.defaults.wasteGoal && dayData.defaults.sleepGoal;
+    const anyDefaults = dayData.defaults.studyGoal || dayData.defaults.wasteGoal || dayData.defaults.sleepGoal;
     if (defaultsComplete) {
       dayEl.classList.add('completed');   // map to green in CSS
     } else if (anyDefaults) {
