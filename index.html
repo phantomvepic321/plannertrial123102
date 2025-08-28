@@ -26,14 +26,12 @@
                 </div>
             </div>
         </header>
-
         <div class="calendar-container">
             <div class="calendar-header">
                 <button class="nav-btn" id="prevMonth">&lt;</button>
                 <h2 class="month-title" id="monthTitle">August 2025</h2>
                 <button class="nav-btn" id="nextMonth">&gt;</button>
             </div>
-
             <div class="calendar-grid">
                 <div class="day-header">Sun</div>
                 <div class="day-header">Mon</div>
@@ -46,7 +44,6 @@
             </div>
         </div>
     </div>
-
     <!-- Day Modal -->
     <div class="modal hidden" id="dayModal">
         <div class="modal-overlay" id="modalOverlay"></div>
@@ -60,7 +57,6 @@
                 <button class="tab-btn active" data-tab="tracking">Tracking</button>
                 <button class="tab-btn" data-tab="logs">Logs</button>
             </div>
-
             <div class="modal-body">
                 <!-- Tracking Tab -->
                 <div class="tab-content active" id="trackingTab">
@@ -76,27 +72,27 @@
                             <label class="goal-item">
                                 <input type="checkbox" id="studyGoal">
                                 <span class="checkmark"></span>
-                                Study Hours (S)
+                                Daily Planner (S)
                             </label>
                             <label class="goal-item">
                                 <input type="checkbox" id="wasteGoal">
                                 <span class="checkmark"></span>
-                                Waste Hours (W)
+                                Worked Hard and Happy (W)
                             </label>
                             <label class="goal-item">
                                 <input type="checkbox" id="sleepGoal">
                                 <span class="checkmark"></span>
-                                Good Sleep
+                                Prayed and Mindful
                             </label>
                         </div>
 
                         <div class="hours-input">
                             <div class="input-group">
-                                <label for="studyHours">Study Hours (S):</label>
+                                <label for="studyHours">Daily Planner (S):</label>
                                 <input type="number" id="studyHours" min="0" max="24" step="0.5">
                             </div>
                             <div class="input-group">
-                                <label for="wasteHours">Waste Hours (W):</label>
+                                <label for="wasteHours">Worked Hard and Happy (W):</label>
                                 <input type="number" id="wasteHours" min="0" max="24" step="0.5">
                             </div>
                         </div>
@@ -142,7 +138,6 @@
             </div>
         </div>
     </div>
-
     <script src="app.js"></script>
 </body>
 </html>
