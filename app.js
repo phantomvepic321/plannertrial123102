@@ -30,8 +30,8 @@ class StudyPlanner {
     this.logsTab = document.getElementById('logsTab');
 
     // Checkboxes (Default Goals)
-    this.studyGoal = document.getElementById('studyGoal'); // Daily Planner
-    this.wasteGoal = document.getElementById('wasteGoal'); // Worked Hard and Happy
+    this.studyGoal = document.getElementById('studyHours'); // Daily Planner
+    this.wasteGoal = document.getElementById('wasteHours'); // Worked Hard and Happy
     this.sleepGoal = document.getElementById('sleepGoal'); // Prayed and Mindful
 
     // Number entries
