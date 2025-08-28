@@ -1,477 +1,497 @@
-// Success Time PWA JavaScript
-class SuccessTimeApp {
+class StudyPlanner {
     constructor() {
         this.currentDate = new Date();
-        this.currentMonth = this.currentDate.getMonth();
-        this.currentYear = this.currentDate.getFullYear();
         this.selectedDate = null;
-        this.data = {};
-        this.memoryStorage = {};
+        this.data = this.loadData();
         
-        // Default checklist items (fixed)
-        this.defaultChecklist = [
-            { text: "Yellow Book", completed: false, fixed: true },
-            { text: "Worked hard and Happy", completed: false, fixed: true },
-            { text: "Prayed and Mindful", completed: false, fixed: true }
-        ];
-        
-        this.init();
-    }
-    
-    async init() {
-        await this.initStorage();
-        this.setupEventListeners();
-        this.renderCalendar();
-        this.updateStorageIndicators();
-    }
-    
-    async initStorage() {
-        // Initialize IndexedDB
-        try {
-            await this.initIndexedDB();
-        } catch (error) {
-            console.warn('IndexedDB failed to initialize:', error);
-        }
-        
-        // Load existing data
-        await this.loadData();
-    }
-    
-    async initIndexedDB() {
-        return new Promise((resolve, reject) => {
-            const request = indexedDB.open('SuccessTimeDB', 1);
-            
-            request.onerror = () => reject(request.error);
-            request.onsuccess = () => {
-                this.db = request.result;
-                resolve();
-            };
-            
-            request.onupgradeneeded = (event) => {
-                const db = event.target.result;
-                if (!db.objectStoreNames.contains('dailyData')) {
-                    db.createObjectStore('dailyData', { keyPath: 'date' });
-                }
-            };
-        });
-    }
-    
-    async loadData() {
-        try {
-            // Try IndexedDB first
-            if (this.db) {
-                const transaction = this.db.transaction(['dailyData'], 'readonly');
-                const store = transaction.objectStore('dailyData');
-                const request = store.getAll();
-                
-                request.onsuccess = () => {
-                    const dbData = request.result;
-                    dbData.forEach(item => {
-                        this.data[item.date] = item.data;
-                    });
-                    this.renderCalendar();
-                };
-            }
-            
-            // Fallback to localStorage
-            const localData = localStorage.getItem('successTimeData');
-            if (localData && Object.keys(this.data).length === 0) {
-                this.data = JSON.parse(localData);
-                this.renderCalendar();
-            }
-            
-        } catch (error) {
-            console.warn('Failed to load data:', error);
-        }
-    }
-    
-    async saveData(date, dayData) {
-        this.data[date] = dayData;
-        this.memoryStorage[date] = dayData;
-        
-        // Save to IndexedDB
-        if (this.db) {
-            try {
-                const transaction = this.db.transaction(['dailyData'], 'readwrite');
-                const store = transaction.objectStore('dailyData');
-                await store.put({ date, data: dayData });
-            } catch (error) {
-                console.warn('IndexedDB save failed:', error);
-            }
-        }
-        
-        // Save to localStorage
-        try {
-            localStorage.setItem('successTimeData', JSON.stringify(this.data));
-        } catch (error) {
-            console.warn('localStorage save failed:', error);
-        }
-        
-        // Save to sessionStorage
-        try {
-            sessionStorage.setItem('successTimeData', JSON.stringify(this.data));
-        } catch (error) {
-            console.warn('sessionStorage save failed:', error);
-        }
-        
-        this.updateStorageIndicators();
+        this.initializeElements();
+        this.bindEvents();
         this.renderCalendar();
     }
-    
-    updateStorageIndicators() {
-        // IndexedDB indicator
-        const idbIndicator = document.getElementById('indexedDBStatus');
-        idbIndicator.className = 'storage-indicator' + (this.db ? ' healthy' : '');
+
+    initializeElements() {
+        // Calendar elements
+        this.monthTitle = document.getElementById('monthTitle');
+        this.prevMonthBtn = document.getElementById('prevMonth');
+        this.nextMonthBtn = document.getElementById('nextMonth');
+        this.calendarGrid = document.querySelector('.calendar-grid');
+
+        // Modal elements
+        this.modal = document.getElementById('dayModal');
+        this.modalOverlay = document.getElementById('modalOverlay');
+        this.modalClose = document.getElementById('modalClose');
+        this.modalTitle = document.getElementById('modalTitle');
+        this.cancelBtn = document.getElementById('cancelBtn');
+        this.saveBtn = document.getElementById('saveBtn');
+
+        // Tab elements
+        this.tabBtns = document.querySelectorAll('.tab-btn');
+        this.trackingTab = document.getElementById('trackingTab');
+        this.logsTab = document.getElementById('logsTab');
+
+        // Goal elements
+        this.studyGoal = document.getElementById('studyGoal');
+        this.wasteGoal = document.getElementById('wasteGoal');
+        this.sleepGoal = document.getElementById('sleepGoal');
+        this.studyHours = document.getElementById('studyHours');
+        this.wasteHours = document.getElementById('wasteHours');
         
-        // localStorage indicator
-        const lsIndicator = document.getElementById('localStorageStatus');
-        try {
-            localStorage.setItem('test', 'test');
-            localStorage.removeItem('test');
-            lsIndicator.className = 'storage-indicator healthy';
-        } catch {
-            lsIndicator.className = 'storage-indicator';
-        }
-        
-        // sessionStorage indicator
-        const ssIndicator = document.getElementById('sessionStorageStatus');
-        try {
-            sessionStorage.setItem('test', 'test');
-            sessionStorage.removeItem('test');
-            ssIndicator.className = 'storage-indicator healthy';
-        } catch {
-            ssIndicator.className = 'storage-indicator';
-        }
+        // Additional goals elements
+        this.additionalGoals = document.getElementById('additionalGoals');
+        this.newGoalInput = document.getElementById('newGoalInput');
+        this.addGoalBtn = document.getElementById('addGoalBtn');
+        this.additionalGoalsIndicator = document.getElementById('additionalGoalsIndicator');
+
+        // Significance elements
+        this.significanceDisplay = document.getElementById('significanceDisplay');
+        this.newSignificanceInput = document.getElementById('newSignificanceInput');
+        this.addSignificanceBtn = document.getElementById('addSignificanceBtn');
+
+        // Logs elements
+        this.logsDisplay = document.getElementById('logsDisplay');
     }
-    
-    setupEventListeners() {
+
+    bindEvents() {
         // Calendar navigation
-        document.getElementById('prevMonth').addEventListener('click', () => {
-            this.currentMonth--;
-            if (this.currentMonth < 0) {
-                this.currentMonth = 11;
-                this.currentYear--;
-            }
-            this.renderCalendar();
+        this.prevMonthBtn.addEventListener('click', () => this.navigateMonth(-1));
+        this.nextMonthBtn.addEventListener('click', () => this.navigateMonth(1));
+
+        // Modal events
+        this.modalOverlay.addEventListener('click', () => this.closeModal());
+        this.modalClose.addEventListener('click', () => this.closeModal());
+        this.cancelBtn.addEventListener('click', () => this.closeModal());
+        this.saveBtn.addEventListener('click', () => this.saveData());
+
+        // Tab switching
+        this.tabBtns.forEach(btn => {
+            btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
         });
-        
-        document.getElementById('nextMonth').addEventListener('click', () => {
-            this.currentMonth++;
-            if (this.currentMonth > 11) {
-                this.currentMonth = 0;
-                this.currentYear++;
-            }
-            this.renderCalendar();
+
+        // Goal events
+        [this.studyGoal, this.wasteGoal, this.sleepGoal].forEach(goal => {
+            goal.addEventListener('change', () => this.updateGoalIndicator());
         });
-        
-        // Modal controls
-        document.getElementById('closeModal').addEventListener('click', () => {
-            this.closeModal();
+
+        // Additional goals
+        this.addGoalBtn.addEventListener('click', () => this.addAdditionalGoal());
+        this.newGoalInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addAdditionalGoal();
         });
-        
-        document.getElementById('toggleToChecklist').addEventListener('click', () => {
-            this.showChecklistView();
+
+        // Significance events
+        this.addSignificanceBtn.addEventListener('click', () => this.addSignificance());
+        this.newSignificanceInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') this.addSignificance();
         });
-        
-        document.getElementById('toggleToLogs').addEventListener('click', () => {
-            this.showLogsView();
-        });
-        
-        document.getElementById('addMoreGoal').addEventListener('click', () => {
-            this.addAdditionalGoal();
-        });
-        
-        document.getElementById('saveData').addEventListener('click', () => {
-            this.saveCurrentData();
-        });
-        
-        // Close modal when clicking outside
-        document.getElementById('dayModal').addEventListener('click', (e) => {
-            if (e.target.id === 'dayModal') {
+
+        // Close modal on Escape key
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && !this.modal.classList.contains('hidden')) {
                 this.closeModal();
             }
         });
     }
-    
+
+    loadData() {
+        const saved = localStorage.getItem('studyPlannerData');
+        return saved ? JSON.parse(saved) : {};
+    }
+
+    saveDataToStorage() {
+        localStorage.setItem('studyPlannerData', JSON.stringify(this.data));
+    }
+
+    getDateKey(date) {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    }
+
+    getDayData(date) {
+        const key = this.getDateKey(date);
+        if (!this.data[key]) {
+            this.data[key] = {
+                defaults: { study: false, waste: false, sleep: false },
+                studyHours: 0,
+                wasteHours: 0,
+                additionalGoals: [],
+                significances: []
+            };
+        }
+        return this.data[key];
+    }
+
+    navigateMonth(direction) {
+        this.currentDate.setMonth(this.currentDate.getMonth() + direction);
+        this.renderCalendar();
+    }
+
     renderCalendar() {
-        const grid = document.getElementById('calendarGrid');
-        const monthYear = document.getElementById('monthYear');
+        const year = this.currentDate.getFullYear();
+        const month = this.currentDate.getMonth();
         
-        // Update month/year display
-        const months = [
-            'January', 'February', 'March', 'April', 'May', 'June',
-            'July', 'August', 'September', 'October', 'November', 'December'
-        ];
-        monthYear.textContent = `${months[this.currentMonth]} ${this.currentYear}`;
-        
-        // Clear grid
-        grid.innerHTML = '';
-        
-        // Add day headers
-        const dayHeaders = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-        dayHeaders.forEach(day => {
-            const header = document.createElement('div');
-            header.className = 'day-week-header';
-            header.textContent = day;
-            grid.appendChild(header);
-        });
-        
+        // Update month title
+        const monthNames = ['January', 'February', 'March', 'April', 'May', 'June',
+                           'July', 'August', 'September', 'October', 'November', 'December'];
+        this.monthTitle.textContent = `${monthNames[month]} ${year}`;
+
+        // Clear existing days (keep headers)
+        const dayElements = this.calendarGrid.querySelectorAll('.calendar-day');
+        dayElements.forEach(el => el.remove());
+
         // Get first day of month and number of days
-        const firstDay = new Date(this.currentYear, this.currentMonth, 1);
-        const lastDay = new Date(this.currentYear, this.currentMonth + 1, 0);
+        const firstDay = new Date(year, month, 1);
+        const lastDay = new Date(year, month + 1, 0);
         const daysInMonth = lastDay.getDate();
         const startingDayOfWeek = firstDay.getDay();
-        
-        // Add empty cells for days before month starts
-        for (let i = 0; i < startingDayOfWeek; i++) {
-            const emptyDay = document.createElement('div');
-            emptyDay.className = 'calendar-day other-month';
-            grid.appendChild(emptyDay);
+
+        // Add previous month's trailing days
+        const prevMonth = new Date(year, month - 1, 0);
+        for (let i = startingDayOfWeek - 1; i >= 0; i--) {
+            const day = prevMonth.getDate() - i;
+            const date = new Date(year, month - 1, day);
+            this.createDayElement(date, true);
         }
-        
-        // Add days of the month
+
+        // Add current month's days
         for (let day = 1; day <= daysInMonth; day++) {
-            const dayElement = document.createElement('div');
-            dayElement.className = 'calendar-day';
-            
-            const dateStr = this.formatDate(this.currentYear, this.currentMonth, day);
-            const dayData = this.data[dateStr];
-            
-            // Check if this is current day
-            const isCurrentDay = this.isCurrentDay(this.currentYear, this.currentMonth, day);
-            if (isCurrentDay) {
-                dayElement.classList.add('current-day');
-            }
-            
-            // Apply color logic based on default checklist status
-            if (dayData && dayData.defaultChecklist && !isCurrentDay) {
-                const allDefaultsChecked = dayData.defaultChecklist.every(item => item.completed);
-                const anyDefaultUnchecked = dayData.defaultChecklist.some(item => !item.completed);
-                
-                if (allDefaultsChecked) {
-                    dayElement.classList.add('all-defaults-checked');
-                } else if (anyDefaultUnchecked) {
-                    dayElement.classList.add('any-default-unchecked');
-                }
-            }
-            
-            // Day number
-            const dayNumber = document.createElement('div');
-            dayNumber.className = 'day-number';
-            dayNumber.textContent = day;
-            dayElement.appendChild(dayNumber);
-            
-            // Day stats (W:X L:Y)
-            const dayStats = document.createElement('div');
-            dayStats.className = 'day-stats';
-            if (dayData && (dayData.timeStudied > 0 || dayData.timeWasted > 0)) {
-                if (dayData.timeStudied > 0) {
-                    const studiedDiv = document.createElement('div');
-                    studiedDiv.textContent = `W:${dayData.timeStudied}`;
-                    dayStats.appendChild(studiedDiv);
-                }
-                if (dayData.timeWasted > 0) {
-                    const wastedDiv = document.createElement('div');
-                    wastedDiv.textContent = `L:${dayData.timeWasted}`;
-                    dayStats.appendChild(wastedDiv);
-                }
-            }
-            dayElement.appendChild(dayStats);
-            
-            // Add click listener
-            dayElement.addEventListener('click', () => {
-                this.openDayModal(this.currentYear, this.currentMonth, day);
-            });
-            
-            grid.appendChild(dayElement);
+            const date = new Date(year, month, day);
+            this.createDayElement(date, false);
+        }
+
+        // Add next month's leading days
+        const totalCells = this.calendarGrid.children.length - 7; // Subtract headers
+        const remainingCells = 42 - totalCells; // 6 rows * 7 days - current cells
+        
+        for (let day = 1; day <= remainingCells; day++) {
+            const date = new Date(year, month + 1, day);
+            this.createDayElement(date, true);
         }
     }
-    
-    isCurrentDay(year, month, day) {
+
+    createDayElement(date, isOtherMonth) {
+        const dayElement = document.createElement('div');
+        dayElement.className = 'calendar-day';
+        
+        if (isOtherMonth) {
+            dayElement.classList.add('other-month');
+        }
+
+        // Check if it's today
         const today = new Date();
-        return year === today.getFullYear() && 
-               month === today.getMonth() && 
-               day === today.getDate();
+        if (date.toDateString() === today.toDateString()) {
+            dayElement.classList.add('current-day');
+        }
+
+        const dayData = this.getDayData(date);
+        
+        // Check completion status
+        const defaultsComplete = dayData.defaults.study && dayData.defaults.waste && dayData.defaults.sleep;
+        const hasDefaults = dayData.defaults.study || dayData.defaults.waste || dayData.defaults.sleep;
+        
+        if (defaultsComplete) {
+            dayElement.classList.add('completed');
+        } else if (hasDefaults) {
+            dayElement.classList.add('incomplete');
+        }
+
+        // Check if has significance
+        if (dayData.significances && dayData.significances.length > 0) {
+            dayElement.classList.add('has-significance');
+        }
+
+        // Create day content
+        const dayNumber = document.createElement('div');
+        dayNumber.className = 'day-number';
+        dayNumber.textContent = date.getDate();
+
+        const dayHours = document.createElement('div');
+        dayHours.className = 'day-hours';
+        if (dayData.studyHours > 0 || dayData.wasteHours > 0) {
+            dayHours.textContent = `S:${dayData.studyHours || 0} W:${dayData.wasteHours || 0}`;
+        }
+
+        // Additional goals indicator
+        const additionalIndicator = document.createElement('div');
+        additionalIndicator.className = 'day-additional-indicator';
+        
+        if (dayData.additionalGoals && dayData.additionalGoals.length > 0) {
+            additionalIndicator.classList.add('has-additional');
+            const allComplete = dayData.additionalGoals.every(goal => goal.completed);
+            if (allComplete) {
+                additionalIndicator.classList.add('additional-complete');
+            }
+        }
+
+        // Significances display
+        const significancesDiv = document.createElement('div');
+        significancesDiv.className = 'day-significances';
+        if (dayData.significances && dayData.significances.length > 0) {
+            const displayCount = Math.min(3, dayData.significances.length);
+            for (let i = 0; i < displayCount; i++) {
+                const sigSpan = document.createElement('span');
+                sigSpan.className = 'significance-item';
+                sigSpan.textContent = dayData.significances[i];
+                significancesDiv.appendChild(sigSpan);
+            }
+        }
+
+        dayElement.appendChild(dayNumber);
+        dayElement.appendChild(additionalIndicator);
+        dayElement.appendChild(significancesDiv);
+        dayElement.appendChild(dayHours);
+
+        // Add click event
+        dayElement.addEventListener('click', () => this.openModal(date));
+
+        this.calendarGrid.appendChild(dayElement);
     }
-    
-    formatDate(year, month, day) {
-        return `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    }
-    
-    openDayModal(year, month, day) {
-        this.selectedDate = this.formatDate(year, month, day);
-        const dayData = this.data[this.selectedDate] || this.getDefaultDayData();
+
+    openModal(date) {
+        this.selectedDate = date;
+        const dayData = this.getDayData(date);
         
         // Update modal title
-        const date = new Date(year, month, day);
-        document.getElementById('modalDate').textContent = date.toLocaleDateString('en-US', {
-            weekday: 'long',
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
+        const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+        this.modalTitle.textContent = date.toLocaleDateString(undefined, options);
+
+        // Populate form data
+        this.studyGoal.checked = dayData.defaults.study;
+        this.wasteGoal.checked = dayData.defaults.waste;
+        this.sleepGoal.checked = dayData.defaults.sleep;
+        this.studyHours.value = dayData.studyHours || '';
+        this.wasteHours.value = dayData.wasteHours || '';
+
+        // Render additional goals
+        this.renderAdditionalGoals(dayData.additionalGoals || []);
         
-        // Load data into modal
-        this.loadModalData(dayData);
+        // Render significances
+        this.renderSignificances(dayData.significances || []);
         
+        // Update indicators
+        this.updateGoalIndicator();
+        this.updateAdditionalGoalsIndicator();
+
+        // Render logs
+        this.renderLogs(dayData);
+
         // Show modal
-        document.getElementById('dayModal').classList.remove('hidden');
+        this.modal.classList.remove('hidden');
         
-        // Show checklist view by default
-        this.showChecklistView();
-    }
-    
-    closeModal() {
-        document.getElementById('dayModal').classList.add('hidden');
-        this.selectedDate = null;
-    }
-    
-    getDefaultDayData() {
-        return {
-            defaultChecklist: [...this.defaultChecklist],
-            additionalGoals: [
-                { text: "", completed: false },
-                { text: "", completed: false },
-                { text: "", completed: false },
-                { text: "", completed: false },
-                { text: "", completed: false }
-            ],
-            timeStudied: 0,
-            timeWasted: 0
-        };
-    }
-    
-    loadModalData(dayData) {
-        // Load default checklist
-        dayData.defaultChecklist.forEach((item, index) => {
-            const checkbox = document.getElementById(`default-${index + 1}`);
-            if (checkbox) {
-                checkbox.checked = item.completed;
+        // Focus first input
+        setTimeout(() => {
+            if (!this.studyGoal.checked) {
+                this.studyGoal.focus();
+            } else if (this.studyHours.value === '') {
+                this.studyHours.focus();
             }
-        });
-        
-        // Load additional goals
-        this.renderAdditionalGoals(dayData.additionalGoals);
-        
-        // Load logs
-        document.getElementById('timeStudied').value = dayData.timeStudied || 0;
-        document.getElementById('timeWasted').value = dayData.timeWasted || 0;
+        }, 100);
     }
-    
+
+    closeModal() {
+        this.modal.classList.add('hidden');
+        this.selectedDate = null;
+        
+        // Reset form
+        this.newGoalInput.value = '';
+        this.newSignificanceInput.value = '';
+        
+        // Switch back to tracking tab
+        this.switchTab('tracking');
+    }
+
+    switchTab(tabName) {
+        // Update tab buttons
+        this.tabBtns.forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.tab === tabName);
+        });
+
+        // Update tab content
+        this.trackingTab.classList.toggle('active', tabName === 'tracking');
+        this.logsTab.classList.toggle('active', tabName === 'logs');
+    }
+
+    updateGoalIndicator() {
+        // This is handled by CSS classes, but we can add additional logic here if needed
+    }
+
+    updateAdditionalGoalsIndicator() {
+        if (!this.selectedDate) return;
+        
+        const dayData = this.getDayData(this.selectedDate);
+        const circle = this.additionalGoalsIndicator.querySelector('.goal-circle');
+        
+        // Reset classes
+        circle.classList.remove('has-additional', 'additional-complete');
+        
+        if (dayData.additionalGoals && dayData.additionalGoals.length > 0) {
+            circle.classList.add('has-additional');
+            const allComplete = dayData.additionalGoals.every(goal => goal.completed);
+            if (allComplete) {
+                circle.classList.add('additional-complete');
+            }
+        }
+    }
+
     renderAdditionalGoals(goals) {
-        const container = document.getElementById('additionalGoals');
-        container.innerHTML = '';
+        this.additionalGoals.innerHTML = '';
         
         goals.forEach((goal, index) => {
             const goalDiv = document.createElement('div');
             goalDiv.className = 'additional-goal-item';
             
-            const textInput = document.createElement('input');
-            textInput.type = 'text';
-            textInput.className = 'form-control';
-            textInput.placeholder = `Goal ${index + 1}`;
-            textInput.value = goal.text;
-            textInput.dataset.index = index;
+            goalDiv.innerHTML = `
+                <label>
+                    <input type="checkbox" ${goal.completed ? 'checked' : ''} 
+                           onchange="studyPlanner.toggleAdditionalGoal(${index})">
+                    <span class="checkmark"></span>
+                    ${goal.text}
+                </label>
+                <button class="remove-goal-btn" onclick="studyPlanner.removeAdditionalGoal(${index})">×</button>
+            `;
             
-            const checkbox = document.createElement('input');
-            checkbox.type = 'checkbox';
-            checkbox.checked = goal.completed;
-            checkbox.dataset.index = index;
-            
-            goalDiv.appendChild(textInput);
-            goalDiv.appendChild(checkbox);
-            
-            // Add remove button for goals beyond the initial 5
-            if (index >= 5) {
-                const removeBtn = document.createElement('button');
-                removeBtn.className = 'remove-goal';
-                removeBtn.innerHTML = '×';
-                removeBtn.addEventListener('click', () => {
-                    this.removeAdditionalGoal(index);
-                });
-                goalDiv.appendChild(removeBtn);
-            }
-            
-            container.appendChild(goalDiv);
+            this.additionalGoals.appendChild(goalDiv);
         });
     }
-    
+
     addAdditionalGoal() {
-        const currentData = this.getCurrentModalData();
-        currentData.additionalGoals.push({ text: "", completed: false });
-        this.renderAdditionalGoals(currentData.additionalGoals);
+        const text = this.newGoalInput.value.trim();
+        if (!text) return;
+
+        const dayData = this.getDayData(this.selectedDate);
+        if (!dayData.additionalGoals) {
+            dayData.additionalGoals = [];
+        }
+        
+        dayData.additionalGoals.push({ text, completed: false });
+        this.renderAdditionalGoals(dayData.additionalGoals);
+        this.updateAdditionalGoalsIndicator();
+        
+        this.newGoalInput.value = '';
+        this.newGoalInput.focus();
     }
-    
+
+    toggleAdditionalGoal(index) {
+        const dayData = this.getDayData(this.selectedDate);
+        dayData.additionalGoals[index].completed = !dayData.additionalGoals[index].completed;
+        this.updateAdditionalGoalsIndicator();
+    }
+
     removeAdditionalGoal(index) {
-        const currentData = this.getCurrentModalData();
-        currentData.additionalGoals.splice(index, 1);
-        this.renderAdditionalGoals(currentData.additionalGoals);
+        const dayData = this.getDayData(this.selectedDate);
+        dayData.additionalGoals.splice(index, 1);
+        this.renderAdditionalGoals(dayData.additionalGoals);
+        this.updateAdditionalGoalsIndicator();
     }
-    
-    showChecklistView() {
-        document.getElementById('checklistView').classList.remove('hidden');
-        document.getElementById('logsView').classList.add('hidden');
-        document.getElementById('toggleToChecklist').classList.add('active');
-        document.getElementById('toggleToLogs').classList.remove('active');
-    }
-    
-    showLogsView() {
-        document.getElementById('checklistView').classList.add('hidden');
-        document.getElementById('logsView').classList.remove('hidden');
-        document.getElementById('toggleToChecklist').classList.remove('active');
-        document.getElementById('toggleToLogs').classList.add('active');
-    }
-    
-    getCurrentModalData() {
-        const data = {
-            defaultChecklist: [],
-            additionalGoals: [],
-            timeStudied: parseFloat(document.getElementById('timeStudied').value) || 0,
-            timeWasted: parseFloat(document.getElementById('timeWasted').value) || 0
-        };
+
+    renderSignificances(significances) {
+        this.significanceDisplay.innerHTML = '';
         
-        // Get default checklist data
-        this.defaultChecklist.forEach((item, index) => {
-            const checkbox = document.getElementById(`default-${index + 1}`);
-            data.defaultChecklist.push({
-                text: item.text,
-                completed: checkbox ? checkbox.checked : false,
-                fixed: true
-            });
+        significances.forEach((significance, index) => {
+            const sigDiv = document.createElement('div');
+            sigDiv.className = 'significance-item-display';
+            
+            sigDiv.innerHTML = `
+                <span class="significance-text">${significance}</span>
+                <button class="remove-significance-btn" onclick="studyPlanner.removeSignificance(${index})">×</button>
+            `;
+            
+            this.significanceDisplay.appendChild(sigDiv);
         });
-        
-        // Get additional goals data
-        const goalInputs = document.querySelectorAll('#additionalGoals .additional-goal-item');
-        goalInputs.forEach(goalDiv => {
-            const textInput = goalDiv.querySelector('input[type="text"]');
-            const checkbox = goalDiv.querySelector('input[type="checkbox"]');
-            data.additionalGoals.push({
-                text: textInput.value,
-                completed: checkbox.checked
-            });
-        });
-        
-        return data;
     }
-    
-    saveCurrentData() {
+
+    addSignificance() {
+        const text = this.newSignificanceInput.value.trim();
+        if (!text) return;
+
+        const dayData = this.getDayData(this.selectedDate);
+        if (!dayData.significances) {
+            dayData.significances = [];
+        }
+        
+        dayData.significances.push(text);
+        this.renderSignificances(dayData.significances);
+        
+        this.newSignificanceInput.value = '';
+        this.newSignificanceInput.focus();
+    }
+
+    removeSignificance(index) {
+        const dayData = this.getDayData(this.selectedDate);
+        dayData.significances.splice(index, 1);
+        this.renderSignificances(dayData.significances);
+    }
+
+    renderLogs(dayData) {
+        const logs = [];
+        
+        // Default goals status
+        if (dayData.defaults.study || dayData.defaults.waste || dayData.defaults.sleep) {
+            const completed = [];
+            if (dayData.defaults.study) completed.push('Study Hours');
+            if (dayData.defaults.waste) completed.push('Waste Hours');
+            if (dayData.defaults.sleep) completed.push('Good Sleep');
+            logs.push(`✅ Completed: ${completed.join(', ')}`);
+        }
+
+        // Hours logged
+        if (dayData.studyHours > 0) {
+            logs.push(`📚 Study Hours: ${dayData.studyHours}`);
+        }
+        if (dayData.wasteHours > 0) {
+            logs.push(`⏰ Waste Hours: ${dayData.wasteHours}`);
+        }
+
+        // Additional goals
+        if (dayData.additionalGoals && dayData.additionalGoals.length > 0) {
+            const completed = dayData.additionalGoals.filter(goal => goal.completed);
+            logs.push(`🎯 Additional Goals: ${completed.length}/${dayData.additionalGoals.length} completed`);
+        }
+
+        // Significances
+        if (dayData.significances && dayData.significances.length > 0) {
+            logs.push(`⭐ Significances: ${dayData.significances.length} marked`);
+        }
+
+        // Display logs
+        this.logsDisplay.innerHTML = logs.length > 0 
+            ? logs.map(log => `<div class="log-item">${log}</div>`).join('')
+            : '<div class="log-item">No activity recorded for this day.</div>';
+    }
+
+    saveData() {
         if (!this.selectedDate) return;
+
+        const dayData = this.getDayData(this.selectedDate);
         
-        const data = this.getCurrentModalData();
-        this.saveData(this.selectedDate, data);
+        // Save default goals
+        dayData.defaults.study = this.studyGoal.checked;
+        dayData.defaults.waste = this.wasteGoal.checked;
+        dayData.defaults.sleep = this.sleepGoal.checked;
+        
+        // Save hours
+        dayData.studyHours = parseFloat(this.studyHours.value) || 0;
+        dayData.wasteHours = parseFloat(this.wasteHours.value) || 0;
+
+        // Save to localStorage
+        this.saveDataToStorage();
+        
+        // Re-render calendar to update visual indicators
+        this.renderCalendar();
+        
+        // Close modal
         this.closeModal();
     }
 }
 
-// Initialize app when DOM is loaded
+// Initialize the app
+let studyPlanner;
 document.addEventListener('DOMContentLoaded', () => {
-    new SuccessTimeApp();
+    studyPlanner = new StudyPlanner();
 });
 
-// Register service worker for PWA
+// Service Worker Registration
 if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-        navigator.serviceWorker.register('data:text/javascript;base64,c2VsZi5hZGRFdmVudExpc3RlbmVyKCdpbnN0YWxsJywgZXZlbnQgPT4gewogIGV2ZW50LndhaXRVbnRpbChzZWxmLnNraXBXYWl0aW5nKCkpOwp9KTsKCnNlbGYuYWRkRXZlbnRMaXN0ZW5lcignZmV0Y2gnLCBldmVudCA9PiB7CiAgZXZlbnQucmVzcG9uZFdpdGgoZmV0Y2goZXZlbnQucmVxdWVzdCkpOwp9KTs=')
+        navigator.serviceWorker.register('/sw.js')
             .then(registration => {
                 console.log('SW registered: ', registration);
             })
