@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Success Time - Track your success, one day at a time</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Changed base64 manifest link to file reference to enable install -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#21808d">
+    <link rel="icon" href="icon-192.png" type="image/png">
+
+</head>
+<body>
+    <div class="container">
+        <header class="app-header">
+            <h1>Success Time</h1>
+            <p class="tagline">Track your success, one day at a time</p>
+            <div class="storage-indicators">
+                <span class="storage-indicator" id="indexedDBStatus" title="IndexedDB">IDB</span>
+                <span class="storage-indicator" id="localStorageStatus" title="LocalStorage">LS</span>
+                <span class="storage-indicator" id="sessionStorageStatus" title="SessionStorage">SS</span>
+            </div>
+        </header>
+
+        <div class="calendar-controls">
+            <button id="prevMonth" class="btn btn--outline">‹</button>
+            <h2 id="monthYear"></h2>
+            <button id="nextMonth" class="btn btn--outline">›</button>
+        </div>
+
+        <div class="calendar-grid" id="calendarGrid"></div>
+    </div>
+
+    <div class="modal hidden" id="dayModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalDate"></h3>
+                <button class="modal-close" id="closeModal">×</button>
+            </div>
+            
+            <div class="modal-toggle">
+                <button id="toggleToChecklist" class="toggle-btn active">Daily Checklist</button>
+                <button id="toggleToLogs" class="toggle-btn">Logs</button>
+            </div>
+
+            <div class="modal-body">
+                <div id="checklistView" class="view-section">
+                    <div class="checklist-section">
+                        <h4>Daily Checklist</h4>
+                        <div class="default-checklist">
+                            <div class="checklist-item">
+                                <input type="checkbox" id="default-1" data-index="0">
+                                <label for="default-1">Yellow Book</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="default-2" data-index="1">
+                                <label for="default-2">Worked hard and Happy</label>
+                            </div>
+                            <div class="checklist-item">
+                                <input type="checkbox" id="default-3" data-index="2">
+                                <label for="default-3">Prayed and Mindful</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="additional-goals-section">
+                        <h4>Additional Goals</h4>
+                        <div id="additionalGoals"></div>
+                        <button id="addMoreGoal" class="btn btn--outline">+ Add More</button>
+                    </div>
+                </div>
+
+                <div id="logsView" class="view-section hidden">
+                    <div class="logs-section">
+                        <h4>Logs</h4>
+                        <div class="form-group">
+                            <label for="timeStudied" class="form-label">Time studied (hours)</label>
+                            <input type="number" id="timeStudied" class="form-control" min="0" step="0.5" placeholder="0">
+                        </div>
+                        <div class="form-group">
+                            <label for="timeWasted" class="form-label">Time wasted (hours)</label>
+                            <input type="number" id="timeWasted" class="form-control" min="0" step="0.5" placeholder="0">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-footer">
+                <button id="saveData" class="btn btn--primary">Save</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Service worker registration script to enable PWA install -->
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .then(reg => console.log('Service Worker registered:', reg))
+            .catch(err => console.warn('Service Worker failed:', err));
+        });
+      }
+    </script>
+    <script src="app.js"></script>
+</body>
+</html>
