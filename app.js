@@ -29,12 +29,14 @@ class StudyPlanner {
     this.trackingTab = document.getElementById('trackingTab');
     this.logsTab = document.getElementById('logsTab');
 
-    // Goal elements
-    this.studyGoal = document.getElementById('studyGoal');
-    this.wasteGoal = document.getElementById('wasteGoal');
-    this.sleepGoal = document.getElementById('sleepGoal');
-    this.studyHours = document.getElementById('studyHours');
-    this.wasteHours = document.getElementById('wasteHours');
+    // Goal elements (checkboxes)
+    this.studyGoal = document.getElementById('studyGoal');   // Daily Planner
+    this.wasteGoal = document.getElementById('wasteGoal');   // Worked Hard and Happy
+    this.sleepGoal = document.getElementById('sleepGoal');   // Prayed and Mindful
+
+    // Number entry elements
+    this.studyHours = document.getElementById('studyHours'); // Study Hours (S)
+    this.wasteHours = document.getElementById('wasteHours'); // Time Wasted (W)
 
     // Additional goals elements
     this.additionalGoals = document.getElementById('additionalGoals');
@@ -67,7 +69,7 @@ class StudyPlanner {
       btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
     });
 
-    // Default goals change
+    // Default goals change (checkboxes)
     [this.studyGoal, this.wasteGoal, this.sleepGoal].forEach(goal => {
       goal.addEventListener('change', () => this.updateAdditionalGoalsIndicator());
     });
@@ -109,9 +111,12 @@ class StudyPlanner {
     const key = this.getDateKey(date);
     if (!this.data[key]) {
       this.data[key] = {
+        // Defaults map to checkboxes; names here are internal and unchanged
         defaults: { study: false, waste: false, sleep: false },
+        // Number entries
         studyHours: 0,
         wasteHours: 0,
+        // Lists
         additionalGoals: [],
         significances: []
       };
@@ -196,6 +201,7 @@ class StudyPlanner {
     const dayHours = document.createElement('div');
     dayHours.className = 'day-hours';
     if (dayData.studyHours > 0 || dayData.wasteHours > 0) {
+      // Display requested: S and W abbreviations
       dayHours.textContent = `S:${dayData.studyHours || 0} W:${dayData.wasteHours || 0}`;
     }
 
@@ -237,12 +243,12 @@ class StudyPlanner {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     this.modalTitle.textContent = date.toLocaleDateString(undefined, options);
 
-    // Defaults
-    this.studyGoal.checked = dayData.defaults.study;
-    this.wasteGoal.checked = dayData.defaults.waste;
-    this.sleepGoal.checked = dayData.defaults.sleep;
+    // Defaults (checkboxes)
+    this.studyGoal.checked = dayData.defaults.study; // Daily Planner
+    this.wasteGoal.checked = dayData.defaults.waste; // Worked Hard and Happy
+    this.sleepGoal.checked = dayData.defaults.sleep; // Prayed and Mindful
 
-    // Hours
+    // Number entries
     this.studyHours.value = dayData.studyHours || '';
     this.wasteHours.value = dayData.wasteHours || '';
 
@@ -366,13 +372,13 @@ class StudyPlanner {
   renderLogs(dayData) {
     const logs = [];
     const completed = [];
-    if (dayData.defaults.study) completed.push('Daily Planner (S)');
-    if (dayData.defaults.waste) completed.push('Worked Hard and Happy (W)');
+    if (dayData.defaults.study) completed.push('Daily Planner');
+    if (dayData.defaults.waste) completed.push('Worked Hard and Happy');
     if (dayData.defaults.sleep) completed.push('Prayed and Mindful');
     if (completed.length) logs.push(`✅ Completed: ${completed.join(', ')}`);
 
-    if (dayData.studyHours > 0) logs.push(`📚 S (Daily Planner): ${dayData.studyHours}`);
-    if (dayData.wasteHours > 0) logs.push(`⏰ W (Worked Hard & Happy): ${dayData.wasteHours}`);
+    if (dayData.studyHours > 0) logs.push(`📚 Study Hours (S): ${dayData.studyHours}`);
+    if (dayData.wasteHours > 0) logs.push(`⏰ Time Wasted (W): ${dayData.wasteHours}`);
 
     if (dayData.additionalGoals?.length) {
       const done = dayData.additionalGoals.filter(g => g.completed).length;
@@ -391,14 +397,14 @@ class StudyPlanner {
     if (!this.selectedDate) return;
     const dayData = this.getDayData(this.selectedDate);
 
-    // Save default goals
-    dayData.defaults.study = this.studyGoal.checked;
-    dayData.defaults.waste = this.wasteGoal.checked;
-    dayData.defaults.sleep = this.sleepGoal.checked;
+    // Save default goals (checkboxes)
+    dayData.defaults.study = this.studyGoal.checked; // Daily Planner
+    dayData.defaults.waste = this.wasteGoal.checked; // Worked Hard and Happy
+    dayData.defaults.sleep = this.sleepGoal.checked; // Prayed and Mindful
 
-    // Save hours
-    dayData.studyHours = parseFloat(this.studyHours.value) || 0;
-    dayData.wasteHours = parseFloat(this.wasteHours.value) || 0;
+    // Save number entries
+    dayData.studyHours = parseFloat(this.studyHours.value) || 0; // Study Hours (S)
+    dayData.wasteHours = parseFloat(this.wasteHours.value) || 0; // Time Wasted (W)
 
     // Persist
     this.saveDataToStorage();
