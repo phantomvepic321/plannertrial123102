@@ -29,27 +29,27 @@ class StudyPlanner {
     this.trackingTab = document.getElementById('trackingTab');
     this.logsTab = document.getElementById('logsTab');
 
-    // Goal elements (checkboxes)
-    this.studyGoal = document.getElementById('studyGoal');   // Daily Planner
-    this.wasteGoal = document.getElementById('wasteGoal');   // Worked Hard and Happy
-    this.sleepGoal = document.getElementById('sleepGoal');   // Prayed and Mindful
+    // Checkboxes (Default Goals)
+    this.studyGoal = document.getElementById('studyGoal'); // Daily Planner
+    this.wasteGoal = document.getElementById('wasteGoal'); // Worked Hard and Happy
+    this.sleepGoal = document.getElementById('sleepGoal'); // Prayed and Mindful
 
-    // Number entry elements
-    this.studyHours = document.getElementById('studyHours'); // Study Hours (S)
+    // Number entries
+    this.studyHours = document.getElementById('studyHours'); // Studied Hours (S)
     this.wasteHours = document.getElementById('wasteHours'); // Time Wasted (W)
 
-    // Additional goals elements
+    // Additional goals
     this.additionalGoals = document.getElementById('additionalGoals');
     this.newGoalInput = document.getElementById('newGoalInput');
     this.addGoalBtn = document.getElementById('addGoalBtn');
     this.additionalGoalsIndicator = document.getElementById('additionalGoalsIndicator');
 
-    // Significance elements
+    // Significance
     this.significanceDisplay = document.getElementById('significanceDisplay');
     this.newSignificanceInput = document.getElementById('newSignificanceInput');
     this.addSignificanceBtn = document.getElementById('addSignificanceBtn');
 
-    // Logs elements
+    // Logs
     this.logsDisplay = document.getElementById('logsDisplay');
   }
 
@@ -69,24 +69,24 @@ class StudyPlanner {
       btn.addEventListener('click', (e) => this.switchTab(e.target.dataset.tab));
     });
 
-    // Default goals change (checkboxes)
+    // Checkbox changes update indicators
     [this.studyGoal, this.wasteGoal, this.sleepGoal].forEach(goal => {
       goal.addEventListener('change', () => this.updateAdditionalGoalsIndicator());
     });
 
-    // Additional goals
+    // Additional goals events
     this.addGoalBtn.addEventListener('click', () => this.addAdditionalGoal());
     this.newGoalInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') this.addAdditionalGoal();
     });
 
-    // Significance
+    // Significance events
     this.addSignificanceBtn.addEventListener('click', () => this.addSignificance());
     this.newSignificanceInput.addEventListener('keypress', (e) => {
       if (e.key === 'Enter') this.addSignificance();
     });
 
-    // Escape closes modal
+    // ESC closes modal
     document.addEventListener('keydown', (e) => {
       if (e.key === 'Escape' && !this.modal.classList.contains('hidden')) {
         this.closeModal();
@@ -111,12 +111,9 @@ class StudyPlanner {
     const key = this.getDateKey(date);
     if (!this.data[key]) {
       this.data[key] = {
-        // Defaults map to checkboxes; names here are internal and unchanged
         defaults: { study: false, waste: false, sleep: false },
-        // Number entries
         studyHours: 0,
         wasteHours: 0,
-        // Lists
         additionalGoals: [],
         significances: []
       };
@@ -136,14 +133,14 @@ class StudyPlanner {
     const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
     this.monthTitle.textContent = `${monthNames[month]} ${year}`;
 
-    // Remove prior day cells (keep headers)
+    // Clear prior days (keep headers)
     this.calendarGrid.querySelectorAll('.calendar-day').forEach(el => el.remove());
 
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const startingDayOfWeek = firstDay.getDay();
 
-    // Trailing from previous month
+    // Trailing previous month
     const prevMonth = new Date(year, month, 0);
     for (let i = startingDayOfWeek - 1; i >= 0; i--) {
       const day = prevMonth.getDate() - i;
@@ -157,7 +154,7 @@ class StudyPlanner {
       this.createDayElement(date, false);
     }
 
-    // Leading to fill 6 rows
+    // Leading next month to fill 6 rows
     const totalCells = this.calendarGrid.children.length - 7; // minus headers
     const remainingCells = 42 - totalCells;
     for (let day = 1; day <= remainingCells; day++) {
@@ -178,18 +175,18 @@ class StudyPlanner {
 
     const dayData = this.getDayData(date);
 
-    // Defaults completion classes (map via CSS)
+    // Visual classes based on defaults
     const defaultsComplete = dayData.defaults.study && dayData.defaults.waste && dayData.defaults.sleep;
     const anyDefaults = dayData.defaults.study || dayData.defaults.waste || dayData.defaults.sleep;
     if (defaultsComplete) {
-      dayEl.classList.add('completed');        // green border via CSS
+      dayEl.classList.add('completed');   // map to green border in CSS
     } else if (anyDefaults) {
-      dayEl.classList.add('incomplete');       // red border via CSS
+      dayEl.classList.add('incomplete');  // map to red border in CSS
     }
 
     // Significance highlight
     if (dayData.significances && dayData.significances.length > 0) {
-      dayEl.classList.add('has-significance'); // yellow background via CSS
+      dayEl.classList.add('has-significance'); // map to yellow in CSS
     }
 
     // Day number
@@ -197,24 +194,23 @@ class StudyPlanner {
     dayNum.className = 'day-number';
     dayNum.textContent = date.getDate();
 
-    // Hours (S/W)
+    // Hours (S/W) shown in the grid
     const dayHours = document.createElement('div');
     dayHours.className = 'day-hours';
     if (dayData.studyHours > 0 || dayData.wasteHours > 0) {
-      // Display requested: S and W abbreviations
       dayHours.textContent = `S:${dayData.studyHours || 0} W:${dayData.wasteHours || 0}`;
     }
 
-    // Additional goals circle (top-right)
+    // Additional goals top-right indicator
     const addCircle = document.createElement('div');
     addCircle.className = 'day-additional-indicator';
     if (dayData.additionalGoals && dayData.additionalGoals.length > 0) {
-      addCircle.classList.add('has-additional'); // red circle via CSS
+      addCircle.classList.add('has-additional'); // red circle by CSS
       const allComplete = dayData.additionalGoals.every(g => g.completed);
-      if (allComplete) addCircle.classList.add('additional-complete'); // green circle via CSS
+      if (allComplete) addCircle.classList.add('additional-complete'); // green circle by CSS
     }
 
-    // Up to 3 significances (optional)
+    // Up to 3 significances inline (optional)
     const sigWrap = document.createElement('div');
     sigWrap.className = 'day-significances';
     if (dayData.significances && dayData.significances.length > 0) {
@@ -243,7 +239,7 @@ class StudyPlanner {
     const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
     this.modalTitle.textContent = date.toLocaleDateString(undefined, options);
 
-    // Defaults (checkboxes)
+    // Checkboxes
     this.studyGoal.checked = dayData.defaults.study; // Daily Planner
     this.wasteGoal.checked = dayData.defaults.waste; // Worked Hard and Happy
     this.sleepGoal.checked = dayData.defaults.sleep; // Prayed and Mindful
@@ -252,7 +248,7 @@ class StudyPlanner {
     this.studyHours.value = dayData.studyHours || '';
     this.wasteHours.value = dayData.wasteHours || '';
 
-    // Render lists
+    // Lists
     this.renderAdditionalGoals(dayData.additionalGoals || []);
     this.renderSignificances(dayData.significances || []);
 
@@ -262,7 +258,7 @@ class StudyPlanner {
     // Logs
     this.renderLogs(dayData);
 
-    // Show
+    // Show modal
     this.modal.classList.remove('hidden');
 
     setTimeout(() => {
@@ -291,9 +287,9 @@ class StudyPlanner {
     const circle = this.additionalGoalsIndicator.querySelector('.goal-circle');
     circle.classList.remove('has-additional', 'additional-complete');
     if (dayData.additionalGoals && dayData.additionalGoals.length > 0) {
-      circle.classList.add('has-additional'); // red by CSS
+      circle.classList.add('has-additional');
       const allComplete = dayData.additionalGoals.every(g => g.completed);
-      if (allComplete) circle.classList.add('additional-complete'); // green by CSS
+      if (allComplete) circle.classList.add('additional-complete');
     }
   }
 
@@ -304,7 +300,7 @@ class StudyPlanner {
       row.className = 'additional-goal-item';
       row.innerHTML = `
         <label>
-          <input type="checkbox" ${goal.completed ? 'checked' : ''} onchange="studyPlanner.toggleAdditionalGoal(${index})">
+          <input type="checkbox" ${goal.completed ? 'checked' : ''} onchange="studyPlanner.toggleAdditionalGoal(${index})"/>
           <span class="checkmark"></span>
           ${goal.text}
         </label>
@@ -377,7 +373,7 @@ class StudyPlanner {
     if (dayData.defaults.sleep) completed.push('Prayed and Mindful');
     if (completed.length) logs.push(`✅ Completed: ${completed.join(', ')}`);
 
-    if (dayData.studyHours > 0) logs.push(`📚 Study Hours (S): ${dayData.studyHours}`);
+    if (dayData.studyHours > 0) logs.push(`📚 Studied Hours (S): ${dayData.studyHours}`);
     if (dayData.wasteHours > 0) logs.push(`⏰ Time Wasted (W): ${dayData.wasteHours}`);
 
     if (dayData.additionalGoals?.length) {
@@ -397,33 +393,29 @@ class StudyPlanner {
     if (!this.selectedDate) return;
     const dayData = this.getDayData(this.selectedDate);
 
-    // Save default goals (checkboxes)
+    // Save checkboxes
     dayData.defaults.study = this.studyGoal.checked; // Daily Planner
     dayData.defaults.waste = this.wasteGoal.checked; // Worked Hard and Happy
     dayData.defaults.sleep = this.sleepGoal.checked; // Prayed and Mindful
 
-    // Save number entries
-    dayData.studyHours = parseFloat(this.studyHours.value) || 0; // Study Hours (S)
+    // Save numbers
+    dayData.studyHours = parseFloat(this.studyHours.value) || 0; // Studied Hours (S)
     dayData.wasteHours = parseFloat(this.wasteHours.value) || 0; // Time Wasted (W)
 
-    // Persist
+    // Persist and refresh
     this.saveDataToStorage();
-
-    // Update calendar visuals
     this.renderCalendar();
-
-    // Close modal
     this.closeModal();
   }
 }
 
-// Initialize the app
+// Initialize
 let studyPlanner;
 document.addEventListener('DOMContentLoaded', () => {
   studyPlanner = new StudyPlanner();
 });
 
-// Service Worker Registration
+// SW registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('/sw.js')
