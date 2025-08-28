@@ -1,0 +1,36 @@
+{
+  "name": "Daily Planner",
+  "short_name": "Planner",
+  "description": "Track your success, one day at a time - Bulletproof daily habit tracker",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#fcfcf9",
+  "theme_color": "#218186",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192 512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ],
+  "categories": [
+    "productivity",
+    "lifestyle",
+    "utilities"
+  ],
+  "lang": "en",
+  "dir": "ltr",
+  "prefer_related_applications": false
+}
